@@ -333,14 +333,15 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 		chatType = *msg.ChatType
 	}
 
+	isPassive := false
 	if chatType == "group" && !p.groupReplyAll && p.botOpenID != "" {
 		if !isBotMentioned(msg.Mentions, p.botOpenID) {
-			slog.Debug("feishu: ignoring group message without bot mention", "chat_id", chatID)
-			return nil
+			isPassive = true
 		}
 	}
 
-	if !core.AllowList(p.allowFrom, userID) {
+	// Passive messages skip allow-list check (we want to record all group chat)
+	if !isPassive && !core.AllowList(p.allowFrom, userID) {
 		slog.Debug("feishu: message from unauthorized user", "user", userID)
 		return nil
 	}
@@ -357,6 +358,39 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 		sessionKey = fmt.Sprintf("feishu:%s:%s", chatID, userID)
 	}
 	rctx := replyContext{messageID: messageID, chatID: chatID}
+
+	// Passive messages: only record text content, skip image/audio downloads
+	if isPassive {
+		var text string
+		switch msgType {
+		case "text":
+			var textBody struct {
+				Text string `json:"text"`
+			}
+			if err := json.Unmarshal([]byte(*msg.Content), &textBody); err != nil {
+				return nil
+			}
+			text = stripMentions(textBody.Text, msg.Mentions)
+		case "post":
+			textParts, _ := p.parsePostContent(messageID, *msg.Content)
+			text = stripMentions(strings.Join(textParts, "\n"), msg.Mentions)
+		default:
+			// Skip image/audio/other types for passive collection
+			return nil
+		}
+		if text == "" {
+			return nil
+		}
+		slog.Debug("feishu: passive group message", "chat_id", chatID, "user", userID)
+		p.handler(p.dispatchPlatform(), &core.Message{
+			SessionKey: sessionKey, Platform: "feishu",
+			MessageID: messageID,
+			UserID:    userID, UserName: userName,
+			Content: text, ReplyCtx: rctx,
+			Passive: true,
+		})
+		return nil
+	}
 
 	switch msgType {
 	case "text":
