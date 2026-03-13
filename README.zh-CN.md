@@ -38,7 +38,7 @@ cc-connect 把运行在你机器上的 AI Agent 桥接到你日常使用的即�
 - **7 大 AI Agent** — Claude Code、Codex、Cursor Agent、Qoder CLI、Gemini CLI、OpenCode、iFlow CLI，按需选用，也可以同时使用
 - **9 大聊天平台** — 飞书、钉钉、Slack、Telegram、Discord、企业微信、LINE、QQ、QQ 官方机器人，大部分无需公网 IP
 - **多机器人中继** — 在群聊中绑定多个机器人，让它们相互协作。问 Claude，再听 Gemini 的见解 — 同一个对话搞定
-- **聊天即控制** — 切换模型 `/model`、切换权限 `/mode`、管理会话，全部通过斜杠命令完成
+- **聊天即控制** — 切换模型 `/model`、切换推理强度 `/reasoning`、切换权限 `/mode`、管理会话，全部通过斜杠命令完成
 - **Agent 记忆** — 在聊天中直接读写 Agent 指令文件 `/memory`，无需回到终端
 - **定时任务** — 自然语言创建 cron 任务，"每天早上6点帮我总结 GitHub trending" 即刻生效
 - **语音 & 图片** — 发语音或截图，cc-connect 自动转文字和多模态转发
@@ -327,6 +327,7 @@ mode = "default"
 [projects.agent.options]
 mode = "full-auto"
 # model = "o3"
+# reasoning_effort = "high"
 
 # Cursor Agent
 [projects.agent.options]
@@ -355,6 +356,14 @@ mode = "default"
 /mode          # 查看当前模式和所有可用模式
 /mode yolo     # 切换到 YOLO 模式
 /mode default  # 切换回默认模式
+```
+
+对于 Codex，也可以在聊天中切换推理强度：
+
+```
+/reasoning        # 查看当前推理强度和可用等级
+/reasoning high   # 切换到 high 推理强度
+/reasoning 3      # 用序号快速选择
 ```
 
 ## API Provider 管理
@@ -693,6 +702,7 @@ cc-connect daemon uninstall
 /history [n]           查看最近 n 条消息（默认 10）
 /provider [list|add|remove|switch] 管理 API Provider
 /allow <工具名>         预授权工具（下次会话生效）
+/reasoning [等级]      查看或切换推理强度（Codex）
 /mode [名称]           查看或切换权限模式
 /quiet                 开关思考和工具进度消息推送
 /stop                  停止当前执行
@@ -896,4 +906,3 @@ cc-connect/
 ## License
 
 MIT
-

@@ -234,6 +234,9 @@ func main() {
 			engine.SetDisabledCommands(proj.DisabledCommands)
 		}
 
+		// Wire admin allowlist for privileged commands
+		engine.SetAdminFrom(proj.AdminFrom)
+
 		// Wire display truncation settings
 		{
 			dcfg := core.DisplayCfg{
@@ -802,6 +805,9 @@ func reloadConfig(configPath, projName string, engine *core.Engine) (*core.Confi
 
 	// Reload disabled commands
 	engine.SetDisabledCommands(proj.DisabledCommands)
+
+	// Reload admin allowlist
+	engine.SetAdminFrom(proj.AdminFrom)
 
 	slog.Info("config reloaded", "project", projName)
 	return result, nil
