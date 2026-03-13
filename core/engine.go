@@ -162,6 +162,7 @@ type Engine struct {
 	streamPreview    StreamPreviewCfg
 	relayManager     *RelayManager
 	eventIdleTimeout time.Duration
+	chatLog          *ChatLog
 
 	// Interactive agent session management
 	interactiveMu     sync.Mutex
@@ -225,6 +226,7 @@ func NewEngine(name string, ag Agent, platforms []Platform, sessionStorePath str
 		startedAt:         time.Now(),
 		streamPreview:     DefaultStreamPreviewCfg(),
 		eventIdleTimeout:  defaultEventIdleTimeout,
+		chatLog:           NewChatLog(500),
 	}
 
 	if cp, ok := ag.(CommandProvider); ok {
@@ -308,6 +310,11 @@ func (e *Engine) SetConfigReloadFunc(fn func() (*ConfigReloadResult, error)) {
 // GetAgent returns the engine's agent (for type assertions like ProviderSwitcher).
 func (e *Engine) GetAgent() Agent {
 	return e.agent
+}
+
+// ChatLog returns the engine's chat log for API access.
+func (e *Engine) ChatLog() *ChatLog {
+	return e.chatLog
 }
 
 // AddCommand registers a custom slash command.
@@ -618,6 +625,17 @@ func (e *Engine) resolveAlias(content string) string {
 	return content
 }
 
+// extractChatKey extracts the chat identifier from a session key.
+// SessionKey format: "platform:chatID:userID" or "platform:chatID"
+// Returns "platform:chatID".
+func extractChatKey(sessionKey string) string {
+	parts := strings.SplitN(sessionKey, ":", 3)
+	if len(parts) >= 2 {
+		return parts[0] + ":" + parts[1]
+	}
+	return sessionKey
+}
+
 func (e *Engine) handleMessage(p Platform, msg *Message) {
 	slog.Info("message received",
 		"platform", msg.Platform, "msg_id", msg.MessageID,
@@ -629,6 +647,23 @@ func (e *Engine) handleMessage(p Platform, msg *Message) {
 	// Voice message: transcribe to text first
 	if msg.Audio != nil {
 		e.handleVoiceMessage(p, msg)
+		return
+	}
+
+	// Record all group chat messages for chatlog summarization.
+	if msg.IsGroup && msg.Content != "" {
+		chatKey := extractChatKey(msg.SessionKey)
+		e.chatLog.Record(chatKey, ChatLogEntry{
+			UserID:    msg.UserID,
+			UserName:  msg.UserName,
+			Content:   msg.Content,
+			Timestamp: time.Now(),
+		})
+		slog.Debug("group message recorded", "chat_key", chatKey, "user", msg.UserName, "passive", msg.Passive)
+	}
+
+	// Passive group messages: already recorded above, don't trigger agent
+	if msg.Passive {
 		return
 	}
 

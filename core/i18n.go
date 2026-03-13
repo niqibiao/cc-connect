@@ -661,6 +661,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/lang [en|zh|zh-TW|ja|es|auto]\n  View/switch language\n\n" +
 			"/quiet [global]\n  Toggle thinking/tool progress (global = all sessions)\n\n" +
 			"/compress\n  Compress conversation context\n\n" +
+			"/summary [n|duration]\n  Summarize recent group chat messages\n\n" +
 			"/tts [always|voice_only]\n  View/switch text-to-speech mode\n\n" +
 			"/shell <command>\n  Run a shell command and return the output\n\n" +
 			"/stop\n  Stop current execution\n\n" +
@@ -697,6 +698,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/lang [en|zh|zh-TW|ja|es|auto]\n  查看/切换语言\n\n" +
 			"/quiet [global]\n  开关思考和工具进度消息（global = 全部会话）\n\n" +
 			"/compress\n  压缩会话上下文\n\n" +
+			"/summary [n|时长]\n  总结最近的群聊消息\n\n" +
 			"/tts [always|voice_only]\n  查看/切换语音合成模式\n\n" +
 			"/shell <命令>\n  执行 Shell 命令并返回结果\n\n" +
 			"/stop\n  停止当前执行\n\n" +
@@ -733,6 +735,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/lang [en|zh|zh-TW|ja|es|auto]\n  查看/切換語言\n\n" +
 			"/quiet [global]\n  開關思考和工具進度訊息（global = 全部會話）\n\n" +
 			"/compress\n  壓縮會話上下文\n\n" +
+			"/summary [n|時長]\n  總結最近的群聊訊息\n\n" +
 			"/tts [always|voice_only]\n  查看/切換語音合成模式\n\n" +
 			"/shell <命令>\n  執行 Shell 命令並返回結果\n\n" +
 			"/stop\n  停止當前執行\n\n" +
@@ -768,6 +771,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/lang [en|zh|zh-TW|ja|es|auto]\n  言語の表示/切り替え\n\n" +
 			"/quiet [global]\n  思考/ツール進捗メッセージの表示切替（global = 全セッション）\n\n" +
 			"/compress\n  会話コンテキストを圧縮\n\n" +
+			"/summary [n|期間]\n  最近のグループチャットメッセージを要約\n\n" +
 			"/tts [always|voice_only]\n  音声合成モードの表示/切り替え\n\n" +
 			"/shell <コマンド>\n  シェルコマンドを実行して結果を返す\n\n" +
 			"/stop\n  現在の実行を停止\n\n" +
@@ -803,6 +807,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/lang [en|zh|zh-TW|ja|es|auto]\n  Ver/cambiar idioma\n\n" +
 			"/quiet [global]\n  Alternar mensajes de progreso (global = todas las sesiones)\n\n" +
 			"/compress\n  Comprimir contexto de conversación\n\n" +
+			"/summary [n|duración]\n  Resumir mensajes recientes del chat grupal\n\n" +
 			"/tts [always|voice_only]\n  Ver/cambiar modo de síntesis de voz\n\n" +
 			"/shell <comando>\n  Ejecutar un comando shell y devolver la salida\n\n" +
 			"/stop\n  Detener ejecución actual\n\n" +
@@ -927,6 +932,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/alias [add|del] — Command aliases\n" +
 			"/skills — List agent skills\n" +
 			"/compress — Compress context\n" +
+			"/summary — Summarize group chat\n" +
 			"/stop — Stop current execution",
 		LangChinese: "**工具与自动化**\n" +
 			"/shell <命令> — 执行 Shell 命令\n" +
@@ -935,6 +941,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/alias [add|del] — 命令别名\n" +
 			"/skills — 列出 Agent Skills\n" +
 			"/compress — 压缩上下文\n" +
+			"/summary — 总结群聊\n" +
 			"/stop — 停止当前执行",
 		LangTraditionalChinese: "**工具與自動化**\n" +
 			"/shell <命令> — 執行 Shell 命令\n" +
@@ -943,6 +950,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/alias [add|del] — 命令別名\n" +
 			"/skills — 列出 Agent Skills\n" +
 			"/compress — 壓縮上下文\n" +
+			"/summary — 總結群聊\n" +
 			"/stop — 停止當前執行",
 		LangJapanese: "**ツール・自動化**\n" +
 			"/shell <コマンド> — シェルコマンド実行\n" +
@@ -951,6 +959,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/alias [add|del] — コマンドエイリアス\n" +
 			"/skills — エージェントスキル一覧\n" +
 			"/compress — コンテキスト圧縮\n" +
+			"/summary — グループチャット要約\n" +
 			"/stop — 現在の実行を停止",
 		LangSpanish: "**Herramientas y automatización**\n" +
 			"/shell <comando> — Ejecutar comando shell\n" +
@@ -959,6 +968,7 @@ var messages = map[MsgKey]map[Language]string{
 			"/alias [add|del] — Alias de comandos\n" +
 			"/skills — Listar skills del agente\n" +
 			"/compress — Comprimir contexto\n" +
+			"/summary — Resumir chat grupal\n" +
 			"/stop — Detener ejecución actual",
 	},
 	MsgHelpSystemSection: {
@@ -2670,6 +2680,13 @@ var messages = map[MsgKey]map[Language]string{
 		LangTraditionalChinese: "執行 Shell 命令，參數: <命令>",
 		LangJapanese:           "シェルコマンドを実行、引数: <コマンド>",
 		LangSpanish:            "Ejecutar un comando shell, arg: <comando>",
+	},
+	MsgBuiltinCmdTTS: {
+		LangEnglish:            "Text-to-speech settings",
+		LangChinese:            "语音合成设置",
+		LangTraditionalChinese: "語音合成設定",
+		LangJapanese:           "テキスト読み上げ設定",
+		LangSpanish:            "Configuración de texto a voz",
 	},
 }
 

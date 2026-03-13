@@ -5,7 +5,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/chenhg5/cc-connect?include_prereleases)](https://github.com/chenhg5/cc-connect/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[English](./README.md) | 中文
+[English](./README.md) | 中文 | [**Fork 额外功能与配置**](./FORK.md#fork-额外功能与配置说明)
+
+> **本 Fork 新增：[群聊消息总结（Agent 驱动）](./FORK.md#群聊消息总结agent-驱动)** —— 被动记录所有群聊消息，由 AI Agent 按需总结。配置说明见 [FORK.md](./FORK.md#fork-额外功能与配置说明)。
 
 **在任何聊天工具里，远程操控你的本地 AI Agent**
 
@@ -86,6 +88,7 @@ cc-connect 把运行在你机器上的 AI Agent 桥接到你日常使用的即�
 | Feature | API Provider 管理 | ✅ 运行时切换 Provider |
 | Feature | CLI 发送 (`cc-connect send`) | ✅ 通过命令行发送消息到会话 |
 | Feature | 多机器人中继 | ✅ 跨平台机器人通信 & 群聊多机器人绑定 |
+| Feature | 群聊消息总结 | ✅ 自动记录并总结群聊消息（飞书） |
 
 ## 快速开始
 
@@ -741,6 +744,34 @@ cc-connect relay send --to gemini "你觉得这个架构怎么样？"
 - 让 Claude Code 审查代码，然后让 Gemini 提供第二意见
 - 让一个 Agent 处理前端问题，另一个处理后端
 - 从多个 AI 模型交叉验证解决方案
+
+## 群聊消息总结
+
+cc-connect 可以自动记录群聊中所有成员的消息，并通过 AI Agent 智能总结。目前支持**飞书 (Lark)** 平台。
+
+### 工作原理
+
+1. 群聊中所有成员发送的消息（包括未 @bot 的消息）会被自动记录在内存中
+2. 当用户 @bot 请求总结（如"总结群聊"、"大家聊了什么"），Agent 会自动调用 `cc-connect chatlog` 获取聊天记录
+3. Agent 生成摘要后回复，并询问是否需要清空历史记录
+
+### 飞书平台配置要求
+
+- **接收全部群消息**：在飞书开放平台 → 机器人能力设置 → 将消息接收模式改为「**接收群内所有消息**」
+- **通讯录权限**：开通 `contact:user.base:readonly`（获取与更新用户基本信息），以便消息记录中显示真实用户名
+
+### CLI 工具
+
+```bash
+# 获取聊天记录（Agent 自动调用）
+cc-connect chatlog              # 获取所有记录的消息
+cc-connect chatlog -n 100       # 获取最近 100 条
+
+# 清空聊天记录
+cc-connect chatlog-clear
+```
+
+> 消息记录存储在内存中，重启后会清空。每个群聊独立存储，最多保留 500 条消息。
 
 ## 配置说明
 

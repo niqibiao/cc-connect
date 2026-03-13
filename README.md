@@ -5,7 +5,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/chenhg5/cc-connect?include_prereleases)](https://github.com/chenhg5/cc-connect/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-English | [中文](./README.zh-CN.md)
+English | [中文](./README.zh-CN.md) | [**Fork Features & Config**](./FORK.md)
+
+> **This fork adds: [Group Chat Summary (Agent-Driven)](./FORK.md#group-chat-summary-agent-driven)** — passively record all group messages and let the AI agent summarize on demand. See [FORK.md](./FORK.md) for setup and configuration.
 
 **Control your local AI agents from any chat app. Anywhere, anytime.**
 
@@ -87,6 +89,7 @@ cc-connect bridges AI agents running on your machine to the messaging platforms 
 | Feature | API Provider Management | ✅ Runtime provider switching |
 | Feature | CLI Send (`cc-connect send`) | ✅ Send messages to sessions via CLI |
 | Feature | Multi-Bot Relay | ✅ Cross-platform bot communication & group chat binding |
+| Feature | Group Chat Summary | ✅ Record & summarize group messages via AI (Feishu) |
 
 ## Quick Start
 
@@ -798,6 +801,34 @@ This enables powerful workflows like:
 - Ask Claude Code to review code, then ask Gemini for a second opinion
 - Let one agent handle frontend questions while another handles backend
 - Cross-validate solutions from multiple AI models
+
+## Group Chat Summary
+
+cc-connect can passively record all group chat messages and let the AI agent summarize them on demand. Currently supported on **Feishu (Lark)**.
+
+### How It Works
+
+1. In a group chat, all members' messages (including those without @bot) are automatically recorded in memory
+2. When a user @bot and asks for a summary (e.g. "summarize the chat", "总结群聊"), the agent calls `cc-connect chatlog` to retrieve the history
+3. The agent produces a summary and asks whether to clear the history
+
+### Platform Requirements (Feishu)
+
+- **Receive all group messages**: In the Feishu developer console → Bot capabilities → Change message receive mode from "Only receive @bot messages" to "**Receive all group messages**"
+- **Contact permission**: Enable `contact:user.base:readonly` so messages display real user names instead of open IDs
+
+### CLI Tools
+
+```bash
+# Retrieve chat history (used by the agent automatically)
+cc-connect chatlog              # all recorded messages
+cc-connect chatlog -n 100       # last 100 messages
+
+# Clear chat history
+cc-connect chatlog-clear
+```
+
+> Messages are stored in memory and cleared on restart. Each group chat stores up to 500 messages independently.
 
 ## Configuration
 

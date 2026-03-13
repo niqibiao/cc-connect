@@ -72,6 +72,12 @@ func main() {
 		case "relay":
 			runRelay(os.Args[2:])
 			return
+		case "chatlog":
+			runChatlog(os.Args[2:])
+			return
+		case "chatlog-clear":
+			runChatlogClear(os.Args[2:])
+			return
 		case "daemon":
 			runDaemon(os.Args[2:])
 			return

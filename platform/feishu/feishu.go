@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/chenhg5/cc-connect/core"
@@ -54,6 +55,8 @@ type Platform struct {
 	cancel                context.CancelFunc
 	dedup                 core.MessageDedup
 	botOpenID             string
+
+	userNameCache sync.Map // openID → display name
 }
 
 type interactivePlatform struct {
@@ -370,9 +373,7 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 	if sender.SenderId != nil && sender.SenderId.OpenId != nil {
 		userID = *sender.SenderId.OpenId
 	}
-	if sender.SenderType != nil {
-		userName = *sender.SenderType
-	}
+	userName = p.getUserName(userID)
 
 	messageID := ""
 	if msg.MessageId != nil {
@@ -399,14 +400,15 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 		chatType = *msg.ChatType
 	}
 
+	isPassive := false
 	if chatType == "group" && !p.groupReplyAll && p.botOpenID != "" {
 		if !isBotMentioned(msg.Mentions, p.botOpenID) {
-			slog.Debug(p.tag()+": ignoring group message without bot mention", "chat_id", chatID)
-			return nil
+			isPassive = true
 		}
 	}
 
-	if !core.AllowList(p.allowFrom, userID) {
+	// Passive messages skip allow-list check (we want to record all group chat)
+	if !isPassive && !core.AllowList(p.allowFrom, userID) {
 		slog.Debug(p.tag()+": message from unauthorized user", "user", userID)
 		return nil
 	}
@@ -423,6 +425,41 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 		sessionKey = fmt.Sprintf("%s:%s:%s", p.tag(), chatID, userID)
 	}
 	rctx := replyContext{messageID: messageID, chatID: chatID}
+
+	// Passive messages: only record text content, skip image/audio downloads
+	if isPassive {
+		var text string
+		switch msgType {
+		case "text":
+			var textBody struct {
+				Text string `json:"text"`
+			}
+			if err := json.Unmarshal([]byte(*msg.Content), &textBody); err != nil {
+				return nil
+			}
+			text = stripMentions(textBody.Text, msg.Mentions)
+		case "post":
+			textParts, _ := p.parsePostContent(messageID, *msg.Content)
+			text = stripMentions(strings.Join(textParts, "\n"), msg.Mentions)
+		default:
+			// Skip image/audio/other types for passive collection
+			return nil
+		}
+		if text == "" {
+			return nil
+		}
+		slog.Debug("feishu: passive group message", "chat_id", chatID, "user", userID)
+		p.handler(p.dispatchPlatform(), &core.Message{
+			SessionKey: sessionKey, Platform: "feishu",
+			MessageID: messageID,
+			UserID:    userID, UserName: userName,
+			Content: text, ReplyCtx: rctx,
+			Passive: true, IsGroup: true,
+		})
+		return nil
+	}
+
+	isGroup := chatType == "group"
 
 	switch msgType {
 	case "text":
@@ -442,6 +479,7 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 			MessageID: messageID,
 			UserID:    userID, UserName: userName,
 			Content: text, ReplyCtx: rctx,
+			IsGroup: isGroup,
 		})
 
 	case "image":
@@ -463,6 +501,7 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 			UserID:    userID, UserName: userName,
 			Images:   []core.ImageAttachment{{MimeType: mimeType, Data: imgData}},
 			ReplyCtx: rctx,
+			IsGroup:  isGroup,
 		})
 
 	case "audio":
@@ -491,6 +530,7 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 				Duration: audioBody.Duration / 1000,
 			},
 			ReplyCtx: rctx,
+			IsGroup:  isGroup,
 		})
 
 	case "post":
@@ -505,6 +545,7 @@ func (p *Platform) onMessage(event *larkim.P2MessageReceiveV1) error {
 			UserID:    userID, UserName: userName,
 			Content: text, Images: images,
 			ReplyCtx: rctx,
+			IsGroup:  isGroup,
 		})
 
 	default:
@@ -917,6 +958,44 @@ func findSingleAsterisk(s string) int {
 		}
 	}
 	return -1
+}
+
+// getUserName returns a display name for the given open_id, using a cache
+// to avoid repeated API calls. Falls back to open_id on error.
+func (p *Platform) getUserName(openID string) string {
+	if openID == "" {
+		return ""
+	}
+	if cached, ok := p.userNameCache.Load(openID); ok {
+		return cached.(string)
+	}
+	// Call Feishu contact API with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := p.client.Get(ctx,
+		"/open-apis/contact/v3/users/"+openID+"?user_id_type=open_id",
+		nil, larkcore.AccessTokenTypeTenant)
+	if err != nil {
+		slog.Debug("feishu: fetch user name failed", "open_id", openID, "error", err)
+		p.userNameCache.Store(openID, openID)
+		return openID
+	}
+	var result struct {
+		Code int `json:"code"`
+		Data struct {
+			User struct {
+				Name string `json:"name"`
+			} `json:"user"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(resp.RawBody, &result); err != nil || result.Code != 0 || result.Data.User.Name == "" {
+		slog.Debug("feishu: parse user name failed", "open_id", openID, "code", result.Code)
+		p.userNameCache.Store(openID, openID)
+		return openID
+	}
+	name := result.Data.User.Name
+	p.userNameCache.Store(openID, name)
+	return name
 }
 
 // fetchBotOpenID retrieves the bot's open_id via the Feishu bot info API.
