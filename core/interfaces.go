@@ -294,3 +294,43 @@ type BotCommandInfo struct {
 type CommandRegistrar interface {
 	RegisterCommands(commands []BotCommandInfo) error
 }
+
+// UsageReporter is an optional interface for agents that can report quota/usage information.
+type UsageReporter interface {
+	GetUsage(ctx context.Context) (*UsageReport, error)
+}
+
+// UsageReport is the generic usage report returned by agents.
+type UsageReport struct {
+	Provider  string
+	AccountID string
+	UserID    string
+	Email     string
+	Plan      string
+	Buckets   []UsageBucket
+	Credits   *UsageCredits
+}
+
+// UsageBucket represents one rate-limit bucket (e.g. "Rate limit", "Code review").
+type UsageBucket struct {
+	Name         string
+	Allowed      bool
+	LimitReached bool
+	Windows      []UsageWindow
+}
+
+// UsageWindow represents a single rate-limit window within a bucket.
+type UsageWindow struct {
+	Name              string
+	UsedPercent       int
+	WindowSeconds     int
+	ResetAfterSeconds int
+	ResetAtUnix       int64
+}
+
+// UsageCredits represents credit/balance information.
+type UsageCredits struct {
+	HasCredits bool
+	Unlimited  bool
+	Balance    string
+}

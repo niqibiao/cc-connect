@@ -426,6 +426,7 @@ const (
 	MsgBuiltinCmdHelp      MsgKey = "help"
 	MsgBuiltinCmdBind      MsgKey = "bind"
 	MsgBuiltinCmdShell     MsgKey = "shell"
+	MsgBuiltinCmdTTS       MsgKey = "tts"
 )
 
 var messages = map[MsgKey]map[Language]string{
