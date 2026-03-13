@@ -66,6 +66,24 @@ This sends a message to the target bot and waits for its response (printed to st
 The conversation is visible in the group chat and each bot maintains its own relay session.
 
 Environment variables CC_PROJECT and CC_SESSION_KEY are already set, so the relay knows which group chat to use.
+
+### Group chat history
+When the user asks you to summarize, review, or recall recent group chat messages (e.g. "总结群聊", "summarize the chat", "大家聊了什么"), use:
+
+  cc-connect chatlog
+
+This prints all recorded group chat messages. Options:
+  cc-connect chatlog -n 100    # last 100 messages
+
+Environment variables CC_PROJECT and CC_SESSION_KEY are already set.
+Use this output to summarize or answer questions about recent group discussions.
+
+IMPORTANT: After providing a summary, always ask the user whether they want to clear the chat history.
+If the user confirms, run:
+
+  cc-connect chatlog-clear
+
+This clears all recorded messages for the current group chat.
 `
 }
 

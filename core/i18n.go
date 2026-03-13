@@ -402,10 +402,6 @@ const (
 	MsgBuiltinCmdBind     MsgKey = "bind"
 	MsgBuiltinCmdShell    MsgKey = "shell"
 	MsgBuiltinCmdTTS      MsgKey = "tts"
-	MsgBuiltinCmdSummary  MsgKey = "summary"
-
-	MsgSummaryNoMessages MsgKey = "summary_no_messages"
-	MsgSummaryNotInGroup MsgKey = "summary_not_in_group"
 )
 
 var messages = map[MsgKey]map[Language]string{
@@ -2498,27 +2494,6 @@ var messages = map[MsgKey]map[Language]string{
 		LangTraditionalChinese: "語音合成設定",
 		LangJapanese:           "テキスト読み上げ設定",
 		LangSpanish:            "Configuración de texto a voz",
-	},
-	MsgBuiltinCmdSummary: {
-		LangEnglish:            "Summarize recent group chat messages",
-		LangChinese:            "总结最近的群聊消息",
-		LangTraditionalChinese: "總結最近的群聊訊息",
-		LangJapanese:           "最近のグループチャットメッセージを要約",
-		LangSpanish:            "Resumir mensajes recientes del chat grupal",
-	},
-	MsgSummaryNoMessages: {
-		LangEnglish:            "No group messages to summarize.",
-		LangChinese:            "暂无可总结的群聊消息。",
-		LangTraditionalChinese: "暫無可總結的群聊訊息。",
-		LangJapanese:           "要約するグループメッセージがありません。",
-		LangSpanish:            "No hay mensajes de grupo para resumir.",
-	},
-	MsgSummaryNotInGroup: {
-		LangEnglish:            "This command is only available in group chats.",
-		LangChinese:            "此命令仅在群聊中可用。",
-		LangTraditionalChinese: "此命令僅在群聊中可用。",
-		LangJapanese:           "このコマンドはグループチャットでのみ使用できます。",
-		LangSpanish:            "Este comando solo está disponible en chats grupales.",
 	},
 }
 

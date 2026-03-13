@@ -69,6 +69,7 @@ type Message struct {
 	ReplyCtx   any               // platform-specific context needed for replying
 	FromVoice  bool              // true if message originated from voice transcription
 	Passive    bool              // true = passively collected group message (don't trigger agent, just store)
+	IsGroup    bool              // true = message is from a group chat (set by platform)
 }
 
 // EventType distinguishes different kinds of agent output.

@@ -302,6 +302,11 @@ func (e *Engine) GetAgent() Agent {
 	return e.agent
 }
 
+// ChatLog returns the engine's chat log for API access.
+func (e *Engine) ChatLog() *ChatLog {
+	return e.chatLog
+}
+
 // AddCommand registers a custom slash command.
 func (e *Engine) AddCommand(name, description, prompt, exec, workDir, source string) {
 	e.commands.Add(name, description, prompt, exec, workDir, source)
@@ -598,8 +603,8 @@ func (e *Engine) handleMessage(p Platform, msg *Message) {
 		return
 	}
 
-	// Passive group messages: store without triggering agent
-	if msg.Passive {
+	// Record all group chat messages for chatlog summarization.
+	if msg.IsGroup && msg.Content != "" {
 		chatKey := extractChatKey(msg.SessionKey)
 		e.chatLog.Record(chatKey, ChatLogEntry{
 			UserID:    msg.UserID,
@@ -607,7 +612,11 @@ func (e *Engine) handleMessage(p Platform, msg *Message) {
 			Content:   msg.Content,
 			Timestamp: time.Now(),
 		})
-		slog.Debug("passive message recorded", "chat_key", chatKey, "user", msg.UserName)
+		slog.Debug("group message recorded", "chat_key", chatKey, "user", msg.UserName, "passive", msg.Passive)
+	}
+
+	// Passive group messages: already recorded above, don't trigger agent
+	if msg.Passive {
 		return
 	}
 
@@ -1288,7 +1297,6 @@ var builtinCommands = []struct {
 	{[]string{"search", "find"}, "search"},
 	{[]string{"shell", "sh", "exec", "run"}, "shell"},
 	{[]string{"tts"}, "tts"},
-	{[]string{"summary"}, "summary"},
 }
 
 // matchPrefix finds a unique command matching the given prefix.
@@ -1418,8 +1426,6 @@ func (e *Engine) handleCommand(p Platform, msg *Message, raw string) bool {
 		e.cmdShell(p, msg, raw)
 	case "tts":
 		e.cmdTTS(p, msg, args)
-	case "summary":
-		e.cmdSummary(p, msg, args)
 	default:
 		if custom, ok := e.commands.Resolve(cmd); ok {
 			e.executeCustomCommand(p, msg, custom, args)
@@ -2269,7 +2275,6 @@ func helpCardGroups() []helpCardGroup {
 				{command: "/alias", action: "nav:/alias"},
 				{command: "/skills", action: "nav:/skills"},
 				{command: "/compress", action: "cmd:/compress"},
-				{command: "/summary", action: "cmd:/summary"},
 				{command: "/stop", action: "act:/stop"},
 			},
 		},
@@ -2643,55 +2648,6 @@ func (e *Engine) cmdTTS(p Platform, msg *Message, args []string) {
 	default:
 		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgTTSUsage))
 	}
-}
-
-func (e *Engine) cmdSummary(p Platform, msg *Message, args []string) {
-	// Only available in group chats (session key must look like "platform:chatID:userID" or "platform:chatID")
-	chatKey := extractChatKey(msg.SessionKey)
-	if chatKey == msg.SessionKey && strings.Count(msg.SessionKey, ":") < 1 {
-		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgSummaryNotInGroup))
-		return
-	}
-
-	var entries []ChatLogEntry
-	if len(args) > 0 {
-		arg := args[0]
-		// Try parsing as duration like "2h", "30m", "1h30m"
-		if dur, err := time.ParseDuration(arg); err == nil {
-			entries = e.chatLog.GetSince(chatKey, time.Now().Add(-dur))
-		} else if n, err := strconv.Atoi(arg); err == nil && n > 0 {
-			entries = e.chatLog.GetRecent(chatKey, n)
-		} else {
-			// Default: treat as count 50
-			entries = e.chatLog.GetRecent(chatKey, 50)
-		}
-	} else {
-		entries = e.chatLog.GetRecent(chatKey, 50)
-	}
-
-	if len(entries) == 0 {
-		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgSummaryNoMessages))
-		return
-	}
-
-	// Format messages for the agent
-	var sb strings.Builder
-	for _, entry := range entries {
-		sb.WriteString(fmt.Sprintf("[%s] %s: %s\n",
-			entry.Timestamp.Format("15:04:05"),
-			entry.UserName, entry.Content))
-	}
-
-	// Send as a normal message to the agent for summarization
-	prompt := "请总结以下群聊对话的主要内容和关键信息：\n\n" + sb.String()
-	msg.Content = prompt
-
-	session := e.sessions.GetOrCreateActive(msg.SessionKey)
-	if !session.TryLock() {
-		e.reply(p, msg.ReplyCtx, e.i18n.T(MsgPreviousProcessing))
-		return
-	}
-	go e.processInteractiveMessage(p, msg, session)
 }
 
 func (e *Engine) cmdStop(p Platform, msg *Message) {

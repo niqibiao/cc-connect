@@ -61,6 +61,13 @@ func (cl *ChatLog) GetRecent(chatKey string, n int) []ChatLogEntry {
 	return result
 }
 
+// Clear removes all entries for the given chat.
+func (cl *ChatLog) Clear(chatKey string) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	delete(cl.logs, chatKey)
+}
+
 // GetSince returns all entries for the given chat since the specified time.
 func (cl *ChatLog) GetSince(chatKey string, since time.Time) []ChatLogEntry {
 	cl.mu.RLock()
