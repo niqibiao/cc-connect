@@ -5,7 +5,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/chenhg5/cc-connect?include_prereleases)](https://github.com/chenhg5/cc-connect/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[English](./README.md) | 中文
+[English](./README.md) | 中文 | [**Fork 额外功能与配置**](./FORK.md#fork-额外功能与配置说明)
+
+> **本 Fork 新增：[群聊消息总结（Agent 驱动）](./FORK.md#群聊消息总结agent-驱动)** —— 被动记录所有群聊消息，由 AI Agent 按需总结。配置说明见 [FORK.md](./FORK.md#fork-额外功能与配置说明)。
 
 **在任何聊天工具里，远程操控你的本地 AI Agent**
 

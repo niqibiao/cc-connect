@@ -5,7 +5,9 @@
 [![GitHub release](https://img.shields.io/github/v/release/chenhg5/cc-connect?include_prereleases)](https://github.com/chenhg5/cc-connect/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-English | [中文](./README.zh-CN.md)
+English | [中文](./README.zh-CN.md) | [**Fork Features & Config**](./FORK.md)
+
+> **This fork adds: [Group Chat Summary (Agent-Driven)](./FORK.md#group-chat-summary-agent-driven)** — passively record all group messages and let the AI agent summarize on demand. See [FORK.md](./FORK.md) for setup and configuration.
 
 **Control your local AI agents from any chat app. Anywhere, anytime.**
 
